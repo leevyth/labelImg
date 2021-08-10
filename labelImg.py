@@ -267,8 +267,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
         create_mode = action(get_str('crtBox'), self.set_create_mode,
                              'w', 'new', get_str('crtBoxDetail'), enabled=False)
-        edit_mode = action(get_str('editBox'), self.set_edit_mode,
-                           'Ctrl+J', 'edit', get_str('editBoxDetail'), enabled=False)
+        edit_mode = action('&Edit\nRectBox', self.set_edit_mode,
+                           'Ctrl+J', 'edit', u'Move and edit Boxs', enabled=False)
 
         create = action(get_str('crtBox'), self.create_shape,
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
@@ -282,10 +282,10 @@ class MainWindow(QMainWindow, WindowMixin):
                                'Ctrl+Shift+A', 'expert', get_str('advancedModeDetail'),
                                checkable=True)
 
-        hide_all = action(get_str('hideAllBox'), partial(self.toggle_polygons, False),
+        hide_all = action('&Hide\nRectBox', partial(self.toggle_polygons, False),
                           'Ctrl+H', 'hide', get_str('hideAllBoxDetail'),
                           enabled=False)
-        show_all = action(get_str('showAllBox'), partial(self.toggle_polygons, True),
+        show_all = action('&Show\nRectBox', partial(self.toggle_polygons, True),
                           'Ctrl+A', 'hide', get_str('showAllBoxDetail'),
                           enabled=False)
 
@@ -348,7 +348,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.pop_label_list_menu)
 
         # Draw squares/rectangles
-        self.draw_squares_option = QAction(get_str('drawSquares'), self)
+        self.draw_squares_option = QAction('Draw Squares', self)
         self.draw_squares_option.setShortcut('Ctrl+Shift+R')
         self.draw_squares_option.setCheckable(True)
         self.draw_squares_option.setChecked(settings.get(SETTING_DRAW_SQUARE, False))
@@ -805,7 +805,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def load_labels(self, shapes):
         s = []
-        for label, points, line_color, fill_color, difficult in shapes:
+        for label, points, line_color, fill_color, conf, difficult in shapes:
             shape = Shape(label=label)
             for x, y in points:
 
@@ -816,6 +816,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
                 shape.add_point(QPointF(x, y))
             shape.difficult = difficult
+            shape.conf = conf
             shape.close()
             s.append(shape)
 
@@ -856,6 +857,7 @@ class MainWindow(QMainWindow, WindowMixin):
                         fill_color=s.fill_color.getRgb(),
                         points=[(p.x(), p.y()) for p in s.points],
                         # add chris
+                        conf=s.conf,
                         difficult=s.difficult)
 
         shapes = [format_shape(shape) for shape in self.canvas.shapes]
@@ -1500,7 +1502,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 action.setEnabled(False)
 
     def choose_shape_line_color(self):
-        color = self.color_dialog.getColor(self.line_color, u'Choose Line Color',
+        color = self.color_dialog.getColor(self.line_color, u'Choose line color',
                                            default=DEFAULT_LINE_COLOR)
         if color:
             self.canvas.selected_shape.line_color = color
@@ -1508,7 +1510,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.set_dirty()
 
     def choose_shape_fill_color(self):
-        color = self.color_dialog.getColor(self.fill_color, u'Choose Fill Color',
+        color = self.color_dialog.getColor(self.fill_color, u'Choose fill color',
                                            default=DEFAULT_FILL_COLOR)
         if color:
             self.canvas.selected_shape.fill_color = color

@@ -22,10 +22,11 @@ class YOLOWriter:
         self.local_img_path = local_img_path
         self.verified = False
 
-    def add_bnd_box(self, x_min, y_min, x_max, y_max, name, difficult):
+    def add_bnd_box(self, x_min, y_min, x_max, y_max, name, conf, difficult):
         bnd_box = {'xmin': x_min, 'ymin': y_min, 'xmax': x_max, 'ymax': y_max}
         bnd_box['name'] = name
         bnd_box['difficult'] = difficult
+        bnd_box['conf'] = conf
         self.box_list.append(bnd_box)
 
     def bnd_box_to_yolo_line(self, box, class_list=[]):
@@ -69,7 +70,7 @@ class YOLOWriter:
         for box in self.box_list:
             class_index, x_center, y_center, w, h = self.bnd_box_to_yolo_line(box, class_list)
             # print (classIndex, x_center, y_center, w, h)
-            out_file.write("%d %.6f %.6f %.6f %.6f\n" % (class_index, x_center, y_center, w, h))
+            out_file.write("%d %.6f %.6f %.6f %.6f %.6f\n" % (class_index, x_center, y_center, w, h, float(box['conf'])))
 
         # print (classList)
         # print (out_class_file)
@@ -90,8 +91,10 @@ class YoloReader:
         self.file_path = file_path
 
         if class_list_path is None:
-            dir_path = os.path.dirname(os.path.realpath(self.file_path))
-            self.class_list_path = os.path.join(dir_path, "classes.txt")
+            # dir_path = os.path.dirname(os.path.realpath(self.file_path))
+            # self.class_list_path = os.path.join(dir_path, "classes.txt")
+            dir_path = os.path.dirname(os.path.dirname(__file__))
+            self.class_list_path = os.path.join(dir_path, "data", "predefined_classes.txt")
         else:
             self.class_list_path = class_list_path
 
@@ -116,12 +119,12 @@ class YoloReader:
     def get_shapes(self):
         return self.shapes
 
-    def add_shape(self, label, x_min, y_min, x_max, y_max, difficult):
+    def add_shape(self, label, x_min, y_min, x_max, y_max, conf, difficult):
 
         points = [(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)]
-        self.shapes.append((label, points, None, None, difficult))
+        self.shapes.append((label, points, None, None, conf, difficult))
 
-    def yolo_line_to_shape(self, class_index, x_center, y_center, w, h):
+    def yolo_line_to_shape(self, class_index, x_center, y_center, w, h, conf):
         label = self.classes[int(class_index)]
 
         x_min = max(float(x_center) - float(w) / 2, 0)
@@ -134,13 +137,13 @@ class YoloReader:
         y_min = round(self.img_size[0] * y_min)
         y_max = round(self.img_size[0] * y_max)
 
-        return label, x_min, y_min, x_max, y_max
+        return label, x_min, y_min, x_max, y_max, conf
 
     def parse_yolo_format(self):
         bnd_box_file = open(self.file_path, 'r')
         for bndBox in bnd_box_file:
-            class_index, x_center, y_center, w, h = bndBox.strip().split(' ')
-            label, x_min, y_min, x_max, y_max = self.yolo_line_to_shape(class_index, x_center, y_center, w, h)
+            class_index, x_center, y_center, w, h, conf= bndBox.strip().split(' ')
+            label, x_min, y_min, x_max, y_max, conf = self.yolo_line_to_shape(class_index, x_center, y_center, w, h, conf)
 
             # Caveat: difficult flag is discarded when saved as yolo format.
-            self.add_shape(label, x_min, y_min, x_max, y_max, False)
+            self.add_shape(label, x_min, y_min, x_max, y_max, conf, False)
